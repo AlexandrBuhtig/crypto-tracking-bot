@@ -33,7 +33,14 @@ def send_message(message):
 def send_startup_message():
     message = "🔍 Бот запущен. Отслеживаемые монеты:\n"
     for coin_id, info in coins.items():
-        message += f"• {info['symbol']}: цель {info['target_buy']}$, стоп {info['stop_loss']}$\n"
+        try:
+            price = get_coin_price(coin_id)
+            message += (
+                f"• {info['symbol']}: текущая цена {price:.4f}$, "
+                f"цель {info['target_buy']}$, стоп {info['stop_loss']}$\n"
+            )
+        except Exception as e:
+            message += f"• {info['symbol']}: ошибка получения цены: {e}\n"
     send_message(message)
 
 # Проверка цен
