@@ -46,7 +46,11 @@ def get_coin_price(symbol):
 # Функция для отправки сообщения в Telegram
 def send_message(message):
     chat_id = '@alexbinancebotcrypto'  # Канал, куда будут отправляться сообщения
-    bot.send_message(chat_id=chat_id, text=message)
+    try:
+        bot.send_message(chat_id=chat_id, text=message)
+        print(f"Сообщение отправлено: {message}")  # Выводим в консоль для проверки
+    except Exception as e:
+        print(f"Ошибка при отправке сообщения в Telegram: {e}")
 
 # Функция для отслеживания цен
 def track_prices():
