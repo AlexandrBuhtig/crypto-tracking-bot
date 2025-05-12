@@ -3,10 +3,12 @@ from telegram import Bot
 import time
 import os
 
-# Токен и ID чата из переменных окружения
+# Токен Telegram бота
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("@alexbinancebotcrypto")  # Укажите ID вашего канала или чата
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
+
+# Прямо указываем chat_id вашего канала
+TELEGRAM_CHAT_ID = "@alexbinancebotcrypto"
 
 # Список монет и их целевых цен
 coins = {
