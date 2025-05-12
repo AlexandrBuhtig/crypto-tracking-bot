@@ -1,5 +1,6 @@
 import requests
 import os
+import asyncio
 from flask import Flask
 from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -43,14 +44,10 @@ def get_coin_price(symbol):
         print(f"Ошибка при запросе данных для {symbol}: {e}")
         return None
 
-# Функция для отправки сообщения в Telegram
-def send_message(message):
+# Функция для отправки сообщения в Telegram (асинхронная)
+async def send_message(message):
     chat_id = '@alexbinancebotcrypto'  # Канал, куда будут отправляться сообщения
-    try:
-        bot.send_message(chat_id=chat_id, text=message)
-        print(f"Сообщение отправлено: {message}")  # Выводим в консоль для проверки
-    except Exception as e:
-        print(f"Ошибка при отправке сообщения в Telegram: {e}")
+    await bot.send_message(chat_id=chat_id, text=message)
 
 # Функция для отслеживания цен
 def track_prices():
@@ -61,9 +58,9 @@ def track_prices():
 
         # Отправка уведомлений, если цена достигла цели
         if price >= targets["target_buy"]:
-            send_message(f"Цель по {coin} достигнута! Цена: {price} USD. Фиксируй прибыль!")
+            asyncio.run(send_message(f"Цель по {coin} достигнута! Цена: {price} USD. Фиксируй прибыль!"))
         elif price <= targets["stop_loss"]:
-            send_message(f"Стоп-лосс по {coin} сработал! Цена: {price} USD. Продавай позицию!")
+            asyncio.run(send_message(f"Стоп-лосс по {coin} сработал! Цена: {price} USD. Продавай позицию!"))
 
 # Функция для отправки ежедневных уведомлений в 5 UTC
 def daily_update():
@@ -77,7 +74,7 @@ def daily_update():
                         f"Target Buy: {targets['target_buy']} USD, "
                         f"Stop Loss: {targets['stop_loss']} USD\n")
     
-    send_message(message)
+    asyncio.run(send_message(message))
 
 # Функция для отправки информации при запуске бота
 def send_initial_update():
@@ -85,15 +82,13 @@ def send_initial_update():
     for coin, targets in coins.items():
         price = get_coin_price(coin)
         if price is None:
-            message += (f"{coin}: Не удалось получить цену\n"
-                        f"Target Buy: {targets['target_buy']} USD, "
-                        f"Stop Loss: {targets['stop_loss']} USD\n")
+            message += f"{coin}: Не удалось получить цену\n"
         else:
             message += (f"{coin}: {price} USD\n"
                         f"Target Buy: {targets['target_buy']} USD, "
                         f"Stop Loss: {targets['stop_loss']} USD\n")
     
-    send_message(message)
+    asyncio.run(send_message(message))
 
 # Инициализация планировщика задач APScheduler
 scheduler = BackgroundScheduler()
@@ -123,14 +118,12 @@ scheduler.start()
 @app.route('/')
 def index():
     prices_message = "Текущие цены на монеты:\n"
-    for coin, targets in coins.items():
+    for coin in coins:
         price = get_coin_price(coin)
         if price:
             prices_message += f"{coin}: {price} USD\n"
         else:
-            prices_message += (f"{coin}: Не удалось получить цену\n"
-                               f"Target Buy: {targets['target_buy']} USD, "
-                               f"Stop Loss: {targets['stop_loss']} USD\n")
+            prices_message += f"{coin}: Не удалось получить цену\n"
     return prices_message
 
 # Отправка сообщения при запуске
