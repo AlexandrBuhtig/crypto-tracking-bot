@@ -28,7 +28,7 @@ def get_coin_price(coin):
 
 # Функция для отправки сообщения в Telegram
 def send_message(message):
-    bot.send_message(chat_id='@your_telegram_channel', text=message)
+    bot.send_message(chat_id='@alexbinancebotcrypto', text=message)
 
 # Основной цикл для отслеживания цен (запускаем в отдельном потоке)
 def track_prices():
