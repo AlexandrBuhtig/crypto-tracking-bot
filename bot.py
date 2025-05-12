@@ -13,10 +13,10 @@ bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # Список монет и их целевых цен
 coins = {
-    "FET": {"target_buy": 1.00, "stop_loss": 0.70},
     "LINK": {"target_buy": 20.00, "stop_loss": 15.00},
     "SCRT": {"target_buy": 0.30, "stop_loss": 0.21},
-    "AVAX": {"target_buy": 30.00, "stop_loss": 22.00}
+    "AVAX": {"target_buy": 30.00, "stop_loss": 22.00},
+    "FET": {"target_buy": 1.00, "stop_loss": 0.70}
 }
 
 # Функция для получения текущей цены монеты
