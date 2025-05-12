@@ -1,5 +1,3 @@
 python-telegram-bot==20.0
 requests==2.26.0
 pyTelegramBotAPI
-python-telegram-bot==13.15
-python-telegram-bot
