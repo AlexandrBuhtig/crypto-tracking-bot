@@ -81,7 +81,9 @@ def send_initial_update():
     for coin, targets in coins.items():
         price = get_coin_price(coin)
         if price is None:
-            message += f"{coin}: Не удалось получить цену\n"
+            message += (f"{coin}: Не удалось получить цену\n"
+                        f"Target Buy: {targets['target_buy']} USD, "
+                        f"Stop Loss: {targets['stop_loss']} USD\n")
         else:
             message += (f"{coin}: {price} USD\n"
                         f"Target Buy: {targets['target_buy']} USD, "
@@ -117,12 +119,14 @@ scheduler.start()
 @app.route('/')
 def index():
     prices_message = "Текущие цены на монеты:\n"
-    for coin in coins:
+    for coin, targets in coins.items():
         price = get_coin_price(coin)
         if price:
             prices_message += f"{coin}: {price} USD\n"
         else:
-            prices_message += f"{coin}: Не удалось получить цену\n"
+            prices_message += (f"{coin}: Не удалось получить цену\n"
+                               f"Target Buy: {targets['target_buy']} USD, "
+                               f"Stop Loss: {targets['stop_loss']} USD\n")
     return prices_message
 
 # Отправка сообщения при запуске
