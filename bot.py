@@ -1,9 +1,13 @@
+import os
 import requests
+from flask import Flask
 from telegram import Bot
 import time
-import os
+from threading import Thread
 
-# Токен Telegram бота (используется переменная окружения или напрямую)
+app = Flask(__name__)
+
+# Токен Telegram бота
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
@@ -17,37 +21,39 @@ coins = {
 
 # Функция для получения текущей цены монеты
 def get_coin_price(coin):
-    coin_ids = {
-        "FET": "fetch-ai",
-        "LINK": "chainlink",
-        "SCRT": "secret",
-        "AVAX": "avalanche-2"
-    }
-    coin_id = coin_ids.get(coin.upper())
-    if not coin_id:
-        return None
-    url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd"
     response = requests.get(url)
     data = response.json()
-    print(f"DEBUG: Coin {coin} → {coin_id}, Response: {data}")  # Добавлено для отладки
-    return data.get(coin_id, {}).get("usd")
+    return data[coin]["usd"]
 
 # Функция для отправки сообщения в Telegram
 def send_message(message):
-    bot.send_message(chat_id='@alexbinancebotcrypto', text=message)
+    bot.send_message(chat_id='@your_telegram_channel', text=message)
 
-# Основной цикл, проверяющий цены
+# Основной цикл для отслеживания цен (запускаем в отдельном потоке)
 def track_prices():
     while True:
         for coin, targets in coins.items():
-            price = get_coin_price(coin)
-            if price is None:
-                continue
+            price = get_coin_price(coin.lower())
             if price >= targets["target_buy"]:
-                send_message(f"🚀 Цель по {coin} достигнута! Цена: {price:.2f} USD. Фиксируй прибыль!")
+                send_message(f"Цель по {coin} достигнута! Цена: {price} USD. Фиксируй прибыль!")
             elif price <= targets["stop_loss"]:
-                send_message(f"⚠️ Стоп-лосс по {coin}! Цена: {price:.2f} USD. Продавай позицию!")
+                send_message(f"Стоп-лосс по {coin} сработал! Цена: {price} USD. Продавай позицию!")
         time.sleep(300)  # Проверка каждые 5 минут
 
-if __name__ == "__main__":
+# Запуск Flask API
+@app.route('/')
+def home():
+    return "Telegram Bot is running!"
+
+# Функция для запуска бота в отдельном потоке
+def run_bot():
     track_prices()
+
+if __name__ == "__main__":
+    # Запуск Flask в отдельном потоке, чтобы бот работал
+    thread = Thread(target=run_bot)
+    thread.start()
+
+    # Запуск веб-сервиса на порту 8000
+    app.run(host="0.0.0.0", port=8000)
