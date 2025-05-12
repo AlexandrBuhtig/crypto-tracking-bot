@@ -4,7 +4,7 @@ import time
 import os
 
 # Токен Telegram бота (используется переменная окружения или напрямую)
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or "8142280961:AAHXKqeOY3HqtOkXmED4zHS-BjKLXU6Sfqk"
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # Список монет и их целевых цен
@@ -29,7 +29,8 @@ def get_coin_price(coin):
     url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
     response = requests.get(url)
     data = response.json()
-    return data[coin_id]["usd"]
+    print(f"DEBUG: Coin {coin} → {coin_id}, Response: {data}")  # Добавлено для отладки
+    return data.get(coin_id, {}).get("usd")
 
 # Функция для отправки сообщения в Telegram
 def send_message(message):
