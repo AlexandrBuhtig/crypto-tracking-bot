@@ -56,6 +56,9 @@ def track_prices():
         if price is None:
             continue  # Если не удалось получить цену, продолжаем следующий цикл
 
+        # Округляем цену до двух знаков после запятой
+        price = round(price, 2)
+
         # Отправка уведомлений, если цена достигла цели
         if price >= targets["target_buy"]:
             asyncio.run(send_message(f"Цель по {coin} достигнута! Цена: {price} USD. Фиксируй прибыль!"))
@@ -70,6 +73,8 @@ def daily_update():
         if price is None:
             message += f"{coin}: Не удалось получить цену\n"
         else:
+            # Округляем цену до двух знаков после запятой
+            price = round(price, 2)
             message += (f"{coin}: {price} USD\n"
                         f"Target Buy: {targets['target_buy']} USD, "
                         f"Stop Loss: {targets['stop_loss']} USD\n")
@@ -84,6 +89,8 @@ def send_initial_update():
         if price is None:
             message += f"{coin}: Не удалось получить цену\n"
         else:
+            # Округляем цену до двух знаков после запятой
+            price = round(price, 2)
             message += (f"{coin}: {price} USD\n"
                         f"Target Buy: {targets['target_buy']} USD, "
                         f"Stop Loss: {targets['stop_loss']} USD\n")
@@ -121,6 +128,7 @@ def index():
     for coin in coins:
         price = get_coin_price(coin)
         if price:
+            price = round(price, 2)  # Округление
             prices_message += f"{coin}: {price} USD\n"
         else:
             prices_message += f"{coin}: Не удалось получить цену\n"
