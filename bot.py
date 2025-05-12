@@ -1,16 +1,19 @@
+import threading
+import time
 import requests
 from telegram import Bot
-import time
+from flask import Flask
 import os
 
-# Токен Telegram бота
+# Токен Telegram-бота (использовать через переменные окружения для безопасности)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
-# Прямо указываем chat_id вашего канала
+# Прямо указанный канал (если публичный)
 TELEGRAM_CHAT_ID = "@alexbinancebotcrypto"
 
-# Список монет и их целевых цен
+bot = Bot(token=TELEGRAM_BOT_TOKEN)
+
+# Список монет с целями
 coins = {
     "fetch-ai": {"symbol": "FET", "target_buy": 1.00, "stop_loss": 0.70},
     "chainlink": {"symbol": "LINK", "target_buy": 20.00, "stop_loss": 15.00},
@@ -25,39 +28,46 @@ def get_coin_price(coin_id):
     data = response.json()
     return data[coin_id]["usd"]
 
-# Отправка сообщения
+# Отправка в Telegram
 def send_message(message):
-    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+    try:
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+    except Exception as e:
+        print(f"Ошибка отправки: {e}")
 
-# Стартовое сообщение
-def send_startup_message():
-    message = "🔍 Бот запущен. Отслеживаемые монеты:\n"
+# Цикл отслеживания
+def track_prices():
+    # Стартовое сообщение
+    msg = "✅ Бот запущен. Монеты и цели:\n"
     for coin_id, info in coins.items():
         try:
             price = get_coin_price(coin_id)
-            message += (
-                f"• {info['symbol']}: текущая цена {price:.4f}$, "
-                f"цель {info['target_buy']}$, стоп {info['stop_loss']}$\n"
-            )
-        except Exception as e:
-            message += f"• {info['symbol']}: ошибка получения цены: {e}\n"
-    send_message(message)
+            msg += f"• {info['symbol']}: {price} USD (🎯 {info['target_buy']} / ⛔ {info['stop_loss']})\n"
+        except:
+            msg += f"• {info['symbol']}: ❌ не удалось получить цену\n"
+    send_message(msg)
 
-# Проверка цен
-def track_prices():
-    send_startup_message()
     while True:
         for coin_id, info in coins.items():
             try:
                 price = get_coin_price(coin_id)
-                symbol = info["symbol"]
                 if price >= info["target_buy"]:
-                    send_message(f"📈 {symbol} достиг цели! Цена: {price}$ — фиксируй прибыль!")
+                    send_message(f"🟢 {info['symbol']} достиг цели! Цена: {price} USD.")
                 elif price <= info["stop_loss"]:
-                    send_message(f"⚠️ {symbol} достиг стоп-лосса! Цена: {price}$ — продавай!")
+                    send_message(f"🔴 Стоп-лосс по {info['symbol']}! Цена: {price} USD.")
             except Exception as e:
-                send_message(f"❗ Ошибка при проверке {info['symbol']}: {e}")
-        time.sleep(300)  # 5 минут
+                print(f"Ошибка {coin_id}: {e}")
+        time.sleep(300)
+
+# Flask-сервер для Render
+app = Flask(__name__)
+
+@app.route("/")
+def index():
+    return "✅ Crypto bot is running."
 
 if __name__ == "__main__":
-    track_prices()
+    t = threading.Thread(target=track_prices)
+    t.start()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
