@@ -1,10 +1,10 @@
 import requests
-import time
 import os
 from flask import Flask
 from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 
 # Токен Telegram бота
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -75,6 +75,20 @@ def daily_update():
     
     send_message(message)
 
+# Функция для отправки информации при запуске бота
+def send_initial_update():
+    message = "Бот запущен! Текущие цены на монеты и целевые цены:\n"
+    for coin, targets in coins.items():
+        price = get_coin_price(coin)
+        if price is None:
+            message += f"{coin}: Не удалось получить цену\n"
+        else:
+            message += (f"{coin}: {price} USD\n"
+                        f"Target Buy: {targets['target_buy']} USD, "
+                        f"Stop Loss: {targets['stop_loss']} USD\n")
+    
+    send_message(message)
+
 # Инициализация планировщика задач APScheduler
 scheduler = BackgroundScheduler()
 
@@ -90,10 +104,7 @@ scheduler.add_job(
 # Запускаем функцию ежедневного обновления в 5:00 UTC
 scheduler.add_job(
     daily_update, 
-    'cron',  # Используем cron для задания по времени
-    hour=5,  # 5:00 UTC
-    minute=0,
-    second=0,
+    CronTrigger(hour=5, minute=0, second=0, timezone="UTC"),  # Запуск в 5:00 UTC
     id='daily_update',
     name='Send daily update at 5 UTC',
     replace_existing=True
@@ -113,6 +124,9 @@ def index():
         else:
             prices_message += f"{coin}: Не удалось получить цену\n"
     return prices_message
+
+# Отправка сообщения при запуске
+send_initial_update()
 
 # Запуск приложения Flask
 if __name__ == "__main__":
