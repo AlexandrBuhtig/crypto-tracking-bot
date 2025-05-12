@@ -3,6 +3,8 @@ import time
 import os
 from flask import Flask
 from telegram import Bot
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
 # Токен Telegram бота
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -46,30 +48,59 @@ def send_message(message):
     chat_id = '@alexbinancebotcrypto'  # Канал, куда будут отправляться сообщения
     bot.send_message(chat_id=chat_id, text=message)
 
-# Основной цикл для отслеживания цен
+# Функция для отслеживания цен
 def track_prices():
-    # Сообщение о запуске бота и отслеживаемых монетах
-    send_message("Бот запущен и отслеживает следующие монеты с целевыми ценами:\n"
-                 "FET: Target Buy = $1.00, Stop Loss = $0.70\n"
-                 "LINK: Target Buy = $20.00, Stop Loss = $15.00\n"
-                 "SCRT: Target Buy = $0.30, Stop Loss = $0.21\n"
-                 "AVAX: Target Buy = $30.00, Stop Loss = $22.00\n")
+    for coin, targets in coins.items():
+        price = get_coin_price(coin)
+        if price is None:
+            continue  # Если не удалось получить цену, продолжаем следующий цикл
 
-    # Основной цикл для отслеживания цен
-    while True:
-        for coin, targets in coins.items():
-            price = get_coin_price(coin)
-            if price is None:
-                continue  # Если не удалось получить цену, продолжаем следующий цикл
+        # Отправка уведомлений, если цена достигла цели
+        if price >= targets["target_buy"]:
+            send_message(f"Цель по {coin} достигнута! Цена: {price} USD. Фиксируй прибыль!")
+        elif price <= targets["stop_loss"]:
+            send_message(f"Стоп-лосс по {coin} сработал! Цена: {price} USD. Продавай позицию!")
 
-            # Отправка уведомлений, если цена достигла цели
-            if price >= targets["target_buy"]:
-                send_message(f"Цель по {coin} достигнута! Цена: {price} USD. Фиксируй прибыль!")
-            elif price <= targets["stop_loss"]:
-                send_message(f"Стоп-лосс по {coin} сработал! Цена: {price} USD. Продавай позицию!")
+# Функция для отправки ежедневных уведомлений в 5 UTC
+def daily_update():
+    message = "Текущие цены на монеты и целевые цены:\n"
+    for coin, targets in coins.items():
+        price = get_coin_price(coin)
+        if price is None:
+            message += f"{coin}: Не удалось получить цену\n"
+        else:
+            message += (f"{coin}: {price} USD\n"
+                        f"Target Buy: {targets['target_buy']} USD, "
+                        f"Stop Loss: {targets['stop_loss']} USD\n")
+    
+    send_message(message)
 
-        # Проверка цен каждые 5 минут
-        time.sleep(300)
+# Инициализация планировщика задач APScheduler
+scheduler = BackgroundScheduler()
+
+# Запускаем функцию отслеживания цен раз в 3 часа
+scheduler.add_job(
+    track_prices, 
+    IntervalTrigger(hours=3),  # Интервал: раз в 3 часа
+    id='track_prices',
+    name='Track coin prices every 3 hours',
+    replace_existing=True
+)
+
+# Запускаем функцию ежедневного обновления в 5:00 UTC
+scheduler.add_job(
+    daily_update, 
+    'cron',  # Используем cron для задания по времени
+    hour=5,  # 5:00 UTC
+    minute=0,
+    second=0,
+    id='daily_update',
+    name='Send daily update at 5 UTC',
+    replace_existing=True
+)
+
+# Запуск планировщика задач
+scheduler.start()
 
 # Маршрут для Flask
 @app.route('/')
@@ -85,5 +116,4 @@ def index():
 
 # Запуск приложения Flask
 if __name__ == "__main__":
-    track_prices()  # Запуск отслеживания цен в фоновом режиме
-    app.run(host="0.0.0.0", port=5000)  # Запуск веб-сервиса на порту 5000
+    app.run(host="0.0.0.0", port=5000)
