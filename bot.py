@@ -1,6 +1,7 @@
 import requests
 import time
 import os
+from flask import Flask
 from telegram import Bot
 
 # Токен Telegram бота
@@ -15,6 +16,9 @@ coins = {
     "SCRT": {"target_buy": 0.30, "stop_loss": 0.21},
     "AVAX": {"target_buy": 30.00, "stop_loss": 22.00}
 }
+
+# Инициализация Flask приложения
+app = Flask(__name__)
 
 # Функция для получения текущей цены монеты через CoinMarketCap
 def get_coin_price(symbol):
@@ -67,6 +71,19 @@ def track_prices():
         # Проверка цен каждые 5 минут
         time.sleep(300)
 
-# Запуск бота
+# Маршрут для Flask
+@app.route('/')
+def index():
+    prices_message = "Текущие цены на монеты:\n"
+    for coin in coins:
+        price = get_coin_price(coin)
+        if price:
+            prices_message += f"{coin}: {price} USD\n"
+        else:
+            prices_message += f"{coin}: Не удалось получить цену\n"
+    return prices_message
+
+# Запуск приложения Flask
 if __name__ == "__main__":
-    track_prices()
+    track_prices()  # Запуск отслеживания цен в фоновом режиме
+    app.run(host="0.0.0.0", port=5000)  # Запуск веб-сервиса на порту 5000
